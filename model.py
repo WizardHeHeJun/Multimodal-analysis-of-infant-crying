@@ -165,7 +165,7 @@ criterion = nn.CrossEntropyLoss().to(device)
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
 
 # 训练模型
-num_epochs = 100
+num_epochs = 200
 train_losses = []
 train_accuracies = []
 val_losses = []
