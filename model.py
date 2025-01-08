@@ -13,7 +13,7 @@ from tensorflow.keras.utils import to_categorical
 
 # 设置常量
 image_size = (128, 128)  # 输入频谱图的尺寸
-n_classes = 7  # 设定类别数
+n_classes = 5  # 设定类别数
 
 # 设置设备（GPU或CPU）
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -98,7 +98,7 @@ class AudioDataset(Dataset):
         return torch.tensor(self.X[idx], dtype=torch.float32).to(device), torch.tensor(self.y[idx],dtype=torch.long).to(device)
 
 # 加载数据
-data_dir = 'train'
+data_dir = 'data'
 dataset = AudioDataset(data_dir, image_size=image_size, duration=5)
 
 # 划分训练集和测试集
@@ -173,7 +173,7 @@ val_accuracies=[]
 
 # 早期停止
 best_loss = float('inf')
-patience = 5  # 容忍训练轮次
+patience = 100  # 容忍训练轮次
 counter = 0
 
 # #ReduceLROnPlateau学习率调度器
@@ -296,7 +296,7 @@ test_accuracy = test_correct_preds / test_total_preds
 print(f"Test Accuracy: {test_accuracy:.4f}")
 
 # 保存模型
-torch.save(model.state_dict(), 'crying_sound_model.pth')
+torch.save(model.state_dict(), 'sound_model.pth')
 
 # # 加载模型
 # model = CryingSoundModel(n_classes=n_classes).to(device)

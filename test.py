@@ -1,27 +1,36 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.cuda import device
-from train import CryingSoundModel, n_classes, test_dataset, dataset
+import os
+import wave
 
-# 设置设备（GPU或CPU）
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def is_valid_wav(file_path):
+    try:
+        with wave.open(file_path, 'rb') as wf:
+            # 检查文件是否可以被成功打开
+            wf.getparams()  # 获取文件参数，如果文件不符合 WAV 格式会抛出异常
+        return True
+    except wave.Error:
+        return False
 
-# 加载模型
-model = CryingSoundModel(n_classes=n_classes).to(device)
-model.load_state_dict(torch.load('crying_sound_model.pth'))
-model.eval()
+def delete_non_standard_wav_files(directory):
+    deleted_count = 0
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.lower().endswith('.wav'):
+                file_path = os.path.join(root, file)
+                if not is_valid_wav(file_path):
+                    try:
+                        os.remove(file_path)  # 删除不符合标准的WAV文件
+                        deleted_count += 1
+                        print(f"已删除不标准的WAV文件: {file_path}")
+                    except Exception as e:
+                        print(f"删除文件时出错 {file_path}: {e}")
+    return deleted_count
 
-# 获取测试样本并进行预测
-sample, _ = test_dataset[0]  # 从测试集获取一个样本
-sample = sample.clone().detach().unsqueeze(0).float()# 添加batch维度
-sample = sample.to(device)  # 确保使用GPU进行预测
+# 输入你想检查的目录路径
+directory = 'E:\Multimodal-analysis-of-infant-crying\data'  # 修改为实际的目录路径
 
-# 进行预测
-model.eval()
-with torch.no_grad():
-    prediction = model(sample)
-    _, predicted_class = torch.max(prediction, 1)
+deleted_count = delete_non_standard_wav_files(directory)
 
-predicted_label = dataset.label_encoder.inverse_transform([predicted_class.item()])
-print(f"Predicted label: {predicted_label[0]}")
+if deleted_count > 0:
+    print(f"共删除 {deleted_count} 个不标准的WAV文件。")
+else:
+    print("没有发现不标准的WAV文件，未进行删除。")
