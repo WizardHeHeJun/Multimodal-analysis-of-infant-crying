@@ -51,11 +51,11 @@ def audio_to_spectrogram(audio_path, size, duration, augment=False):
 
 # 数据加载和标签生成
 class AudioDataset:
-    def __init__(self, data_dir, image_size, duration, augment=False):
+    def __init__(self, data_dir, augment=False):
         self.X = []
         self.y = []
-        self.image_size = image_size
-        self.duration = duration
+        self.image_size = (128, 128) # 输入频谱图的尺寸
+        self.duration = 10 # 设定裁剪时长
         self.label_encoder = LabelEncoder() # 用于标签编码
         self.augment = augment # 是否启用数据增强
 

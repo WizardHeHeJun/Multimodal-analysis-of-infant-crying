@@ -5,17 +5,14 @@ from torch.cuda import device
 from torch.utils.data import DataLoader
 from model import initialize_model, get_optimizer_and_criterion
 from data import AudioDataset
+import joblib
 
 # 设置设备（GPU或CPU）
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def train_and_evaluate(num_epochs, data_dir, n_classes):
 
-    # 设置数据
-    image_size = (128, 128) # 输入频谱图的尺寸
-    duration = 10 # 设定裁剪时长
-
-    dataset = AudioDataset(data_dir, image_size, duration)
+    dataset = AudioDataset(data_dir)
 
     # 划分训练集和测试集
     train_size = int(0.8 * len(dataset))
@@ -160,3 +157,7 @@ def train_and_evaluate(num_epochs, data_dir, n_classes):
 
     # 保存模型
     torch.save(model.state_dict(), 'sound_model_1.pth')
+
+    # 保存标签编码器
+    joblib.dump(dataset.label_encoder, 'label_encoder.pkl')
+

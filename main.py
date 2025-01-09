@@ -8,8 +8,9 @@ def main():
 
     # 设置数据
     num_epochs = 200 #训练轮次
-    data_dir = 'data' #数据加载地址
     n_classes = 5 # 设定类别数
+
+    data_dir = 'data' #数据加载地址
 
     # 开始训练
     train_and_evaluate(num_epochs, data_dir, n_classes)
