@@ -19,7 +19,7 @@ n_classes = 5  # 设定类别数
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # 音频文件转频谱图的函数
-def audio_to_spectrogram(audio_path, size=(128, 128), duration=10, augment=False):
+def audio_to_spectrogram(audio_path, size, duration, augment=False):
     # 加载音频文件，指定持续时间
     y, sr = librosa.load(audio_path, sr=None, duration=duration)
 
@@ -61,7 +61,7 @@ def audio_to_spectrogram(audio_path, size=(128, 128), duration=10, augment=False
 
 # 数据加载和标签生成
 class AudioDataset(Dataset):
-    def __init__(self, data_dir, image_size=(128, 128), duration=5, augment=False):
+    def __init__(self, data_dir, image_size, duration, augment=False):
         self.X = []
         self.y = []
         self.image_size = image_size
@@ -98,8 +98,10 @@ class AudioDataset(Dataset):
         return torch.tensor(self.X[idx], dtype=torch.float32).to(device), torch.tensor(self.y[idx],dtype=torch.long).to(device)
 
 # 加载数据
-data_dir = 'data'
-dataset = AudioDataset(data_dir, image_size=image_size, duration=5)
+data_dir = 'data' # 数据地址
+duration = 10 # 裁剪时长
+
+dataset = AudioDataset(data_dir, image_size, duration)
 
 # 划分训练集和测试集
 train_size = int(0.8 * len(dataset))
@@ -107,12 +109,13 @@ test_size = len(dataset) - train_size
 
 train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
+# 设置训练批次大小
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 #模型构建
 class SoundModel(nn.Module):
-    def __init__(self, n_classes=7):
+    def __init__(self, n_classes):
         super(SoundModel, self).__init__()
 
         # CNN部分
@@ -162,10 +165,10 @@ model = SoundModel(n_classes=n_classes).to(device)
 
 # 定义损失函数和优化器
 criterion = nn.CrossEntropyLoss().to(device)
-optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
+optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5) # 正则化
 
 # 训练模型
-num_epochs = 200
+num_epochs = 200 # 训练轮次
 train_losses = []
 train_accuracies = []
 val_losses = []
@@ -298,21 +301,21 @@ print(f"Test Accuracy: {test_accuracy:.4f}")
 # 保存模型
 torch.save(model.state_dict(), 'sound_model.pth')
 
-# # 加载模型
-# model = CryingSoundModel(n_classes=n_classes).to(device)
-# model.load_state_dict(torch.load('crying_sound_model.pth'))
-# model.eval()
-#
-# # 获取测试样本并进行预测
-# sample, _ = test_dataset[0]  # 从测试集获取一个样本
-# sample = sample.clone().detach().unsqueeze(0).float()# 添加batch维度
-# sample = sample.to(device)  # 确保使用GPU进行预测
-#
-# # 进行预测
-# model.eval()
-# with torch.no_grad():
-#     prediction = model(sample)
-#     _, predicted_class = torch.max(prediction, 1)
-#
-# predicted_label = dataset.label_encoder.inverse_transform([predicted_class.item()])
-# print(f"Predicted label: {predicted_label[0]}")
+# 加载模型
+model = SoundModel(n_classes=n_classes).to(device)
+model.load_state_dict(torch.load('sound_model.pth'))
+model.eval()
+
+# 获取测试样本并进行预测
+sample, _ = test_dataset[0]  # 从测试集获取一个样本
+sample = sample.clone().detach().unsqueeze(0).float()# 添加batch维度
+sample = sample.to(device)  # 确保使用GPU进行预测
+
+# 进行预测
+model.eval()
+with torch.no_grad():
+    prediction = model(sample)
+    _, predicted_class = torch.max(prediction, 1)
+
+predicted_label = dataset.label_encoder.inverse_transform([predicted_class.item()])
+print(f"Predicted label: {predicted_label[0]}")

@@ -9,29 +9,41 @@ from data import AudioDataset
 # 设置设备（GPU或CPU）
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def train_and_evaluate(num_epochs, patience):
-    # 设置数据和加载器
-    data_dir = 'data'
-    dataset = AudioDataset(data_dir, image_size=(128, 128), duration=5)
+def train_and_evaluate(num_epochs, data_dir, n_classes):
 
+    # 设置数据
+    image_size = (128, 128) # 输入频谱图的尺寸
+    duration = 10 # 设定裁剪时长
+
+    dataset = AudioDataset(data_dir, image_size, duration)
+
+    # 划分训练集和测试集
     train_size = int(0.8 * len(dataset))
     test_size = len(dataset) - train_size
+
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
+
+    # 设置训练批次大小
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
     # 初始化模型和优化器
-    model = initialize_model(n_classes=5)  # n_classes根据需要调整
+    model = initialize_model(n_classes)
     optimizer, criterion = get_optimizer_and_criterion(model)
 
     model = model.to(device)
 
+    # 早期停止
+    patience = 10 #容忍训练轮次
     best_loss = float('inf')
     counter = 0
 
     train_losses, train_accuracies, val_losses, val_accuracies = [], [], [], []
 
-    # 使用CosineAnnealingLR调度器
+    # #ReduceLROnPlateau学习率调度器
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, min_delta=0.001, verbose=True)
+
+    # 使用CosineAnnealingLR学习率调度器
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0)
 
     for epoch in range(num_epochs):
@@ -44,29 +56,33 @@ def train_and_evaluate(num_epochs, patience):
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
 
+            # 前向传播
             outputs = model(inputs)
 
+            # 计算损失
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
 
+            # 计算准确率
             _, predicted = torch.max(outputs, 1)
             total_preds += labels.size(0)
             correct_preds += (predicted == labels).sum().item()
             running_loss += loss.item()
 
+        # 更新学习率
         epoch_loss = running_loss / len(train_loader)
         epoch_acc = correct_preds / total_preds
         train_losses.append(epoch_loss)
         train_accuracies.append(epoch_acc)
 
-        # 验证
-        model.eval()
+        # 验证集评估
+        model.eval()  # 切换到评估模式
         val_running_loss = 0.0
         val_correct_preds = 0
         val_total_preds = 0
 
-        with torch.no_grad():
+        with torch.no_grad(): # 不计算梯度
             for inputs, labels in test_loader:
                 inputs, labels = inputs.to(device), labels.to(device)
 
@@ -79,6 +95,7 @@ def train_and_evaluate(num_epochs, patience):
 
                 val_running_loss += loss.item()
 
+        # 验证损失和准确率
         val_loss = val_running_loss / len(test_loader)
         val_acc = val_correct_preds / val_total_preds
         val_losses.append(val_loss)
