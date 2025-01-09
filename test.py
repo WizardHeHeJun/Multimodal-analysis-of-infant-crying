@@ -34,7 +34,7 @@ def main():
     duration = 10  # 设定裁剪时长
 
     # 音频文件路径
-    audio_path = 'E:\Multimodal-analysis-of-infant-crying\data\cry\0G7Hk3D5.wav'
+    audio_path = 'E:\Multimodal-analysis-of-infant-crying\data\hungry\\6A7KZR1p.wav'
 
     # 加载模型
     model = SoundModel(n_classes=n_classes).to(device)
