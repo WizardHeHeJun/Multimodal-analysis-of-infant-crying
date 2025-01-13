@@ -2,7 +2,7 @@ import os
 import joblib
 import torch
 from data import audio_to_spectrogram
-from model import SoundModel
+from model import initialize_model
 
 # 设置设备（GPU或CPU）
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -63,7 +63,7 @@ def main():
     audio_dir = 'E:\Multimodal-analysis-of-infant-crying\data\hungry'
 
     # 加载模型
-    model = SoundModel(n_classes=n_classes).to(device)
+    model = initialize_model(n_classes)
     model.load_state_dict(torch.load(MODEL))
     model.eval()
 
