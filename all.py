@@ -179,11 +179,11 @@ best_loss = float('inf')
 patience = 100  # 容忍训练轮次
 counter = 0
 
-# #ReduceLROnPlateau学习率调度器
-# scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, min_delta=0.001, verbose=True)
+#ReduceLROnPlateau学习率调度器
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, min_lr=0.001, verbose=True)
 
-# 使用CosineAnnealingLR调度器
-scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0)
+# # 使用CosineAnnealingLR调度器
+# scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0)
 
 
 for epoch in range(num_epochs):

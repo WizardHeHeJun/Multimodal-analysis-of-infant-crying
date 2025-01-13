@@ -24,7 +24,7 @@ class SoundModel(nn.Module):
         self.pool = nn.MaxPool2d(2, 2)
 
         # Dropout层
-        self.dropout = nn.Dropout(0.5)
+        self.dropout = nn.Dropout(0.7)
 
         # DNN部分（全连接层）
         self.fc1 = nn.Linear(256 * 8 * 8, 512)  # 将卷积层输出展平后输入到全连接层

@@ -6,6 +6,8 @@ from torch.utils.data import DataLoader
 from model import initialize_model, get_optimizer_and_criterion
 from data import AudioDataset
 import joblib
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 # 设置设备（GPU或CPU）
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -31,17 +33,17 @@ def train_and_evaluate(num_epochs, data_dir, n_classes):
     # model = model.to(device)
 
     # 早期停止
-    patience = 10 #容忍训练轮次
+    patience = 15 #容忍训练轮次
     best_loss = float('inf')
     counter = 0
 
     train_losses, train_accuracies, val_losses, val_accuracies = [], [], [], []
 
-    # #ReduceLROnPlateau学习率调度器
-    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, min_delta=0.001, verbose=True)
+    #ReduceLROnPlateau学习率调度器
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, min_lr=0.001, verbose=True)
 
-    # 使用CosineAnnealingLR学习率调度器
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0)
+    # # 使用CosineAnnealingLR学习率调度器
+    # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0)
 
     for epoch in range(num_epochs):
         model.train()
@@ -143,13 +145,33 @@ def train_and_evaluate(num_epochs, data_dir, n_classes):
     test_correct_preds = 0
     test_total_preds = 0
 
+    # 获取预测结果
+    all_preds = []
+    all_labels = []
+
     with torch.no_grad():
         for inputs, labels in test_loader:
             inputs, labels = inputs.to(device), labels.to(device)
+
             outputs = model(inputs)
+
             _, predicted = torch.max(outputs, 1)
             test_total_preds += labels.size(0)
             test_correct_preds += (predicted == labels).sum().item()
+
+            all_preds.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+
+    # 计算混淆矩阵
+    cm = confusion_matrix(all_labels, all_preds)
+    plt.figure(figsize=(10, 7))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=dataset.label_encoder.classes_,
+                yticklabels=dataset.label_encoder.classes_)
+
+    plt.title('Confusion Matrix')
+    plt.xlabel('Predicted Label')
+    plt.ylabel('True Label')
+    plt.show()
 
     # 计算测试集准确率
     test_accuracy = test_correct_preds / test_total_preds
@@ -161,21 +183,21 @@ def train_and_evaluate(num_epochs, data_dir, n_classes):
     # 保存标签编码器
     joblib.dump(dataset.label_encoder, 'urbansound8k_label_encoder.pkl')
 
-    # 加载模型
-    model = initialize_model(n_classes)
-    model.load_state_dict(torch.load('urbansound8k_sound_model_1.pth'))
-    model.eval()
-
-    # 获取测试样本并进行预测
-    sample, _ = test_dataset[0]  # 从测试集获取一个样本
-    sample = sample.clone().detach().unsqueeze(0).float()  # 添加batch维度
-    sample = sample.to(device)  # 确保使用GPU进行预测
-
-    # 进行预测
-    model.eval()
-    with torch.no_grad():
-        prediction = model(sample)
-        _, predicted_class = torch.max(prediction, 1)
-
-    predicted_label = dataset.label_encoder.inverse_transform([predicted_class.item()])
-    print(f"Predicted label: {predicted_label[0]}")
+    # # 加载模型
+    # model = initialize_model(n_classes)
+    # model.load_state_dict(torch.load('urbansound8k_sound_model_1.pth'))
+    # model.eval()
+    #
+    # # 获取测试样本并进行预测
+    # sample, _ = test_dataset[0]  # 从测试集获取一个样本
+    # sample = sample.clone().detach().unsqueeze(0).float()  # 添加batch维度
+    # sample = sample.to(device)  # 确保使用GPU进行预测
+    #
+    # # 进行预测
+    # model.eval()
+    # with torch.no_grad():
+    #     prediction = model(sample)
+    #     _, predicted_class = torch.max(prediction, 1)
+    #
+    # predicted_label = dataset.label_encoder.inverse_transform([predicted_class.item()])
+    # print(f"Predicted label: {predicted_label[0]}")

@@ -94,7 +94,7 @@ class AudioDataset(Dataset):
         return torch.tensor(self.X[idx], dtype=torch.float32).to(device), torch.tensor(self.y[idx],dtype=torch.long).to(device)
 
 # 加载数据
-data_dir = 'train'
+data_dir = 'data'
 dataset = AudioDataset(data_dir, image_size=image_size, duration=5)
 
 # 划分训练集和测试集
