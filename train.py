@@ -145,7 +145,7 @@ def train_and_evaluate(num_epochs, data_dir, n_classes):
     plt.legend()
 
     # 准确率曲线
-    plt.subplot(1, 2, 2) # 1行3列，位置为第2个
+    plt.subplot(1, 3, 2) # 1行3列，位置为第2个
     plt.plot(train_accuracies, label="Training Accuracy")
     plt.plot(val_accuracies, label="Validation Accuracy")
     plt.title("Accuracy")
@@ -154,7 +154,7 @@ def train_and_evaluate(num_epochs, data_dir, n_classes):
     plt.legend()
 
     # 学习率曲线
-    plt.subplot(1, 2, 3) # 1行3列，位置为第3个
+    plt.subplot(1, 3, 3) # 1行3列，位置为第3个
     plt.plot(lr_history)
     plt.title("Learning Rate Over Time")
     plt.xlabel("Epoch")
