@@ -20,8 +20,8 @@ def count_non_standard_wav_files(directory):
                     non_standard_count += 1
     return non_standard_count
 
-# 输入你想检查的目录路径
-directory = 'E:\Multimodal-analysis-of-infant-crying\data'  # 修改为实际的目录路径
+# 输入目录路径
+directory = 'E:\Multimodal-analysis-of-infant-crying\data'
 
 non_standard_count = count_non_standard_wav_files(directory)
 

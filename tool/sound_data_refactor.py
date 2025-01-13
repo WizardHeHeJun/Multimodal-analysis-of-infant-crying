@@ -1,14 +1,6 @@
 import os
-import wave
+from tool.is_valid_wav import is_valid_wav
 
-def is_valid_wav(file_path):
-    try:
-        with wave.open(file_path, 'rb') as wf:
-            # 检查文件是否可以被成功打开
-            wf.getparams()  # 获取文件参数，如果文件不符合 WAV 格式会抛出异常
-        return True
-    except wave.Error:
-        return False
 
 def delete_non_standard_wav_files(directory):
     deleted_count = 0
@@ -25,8 +17,8 @@ def delete_non_standard_wav_files(directory):
                         print(f"删除文件时出错 {file_path}: {e}")
     return deleted_count
 
-# 输入你想检查的目录路径
-directory = 'E:\Multimodal-analysis-of-infant-crying\data'  # 修改为实际的目录路径
+# 输入目录路径
+directory = 'E:\Multimodal-analysis-of-infant-crying\data'
 
 deleted_count = delete_non_standard_wav_files(directory)
 

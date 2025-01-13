@@ -15,8 +15,8 @@ def delete_backup_files(directory):
                     print(f"删除文件时出错 {file_path}: {e}")
     return deleted_count
 
-# 输入你想检查的目录路径
-directory = 'E:\Multimodal-analysis-of-infant-crying\data\hungry'  # 修改为实际的目录路径
+# 输入目录路径
+directory = 'E:\Multimodal-analysis-of-infant-crying\data\hungry'
 
 deleted_count = delete_backup_files(directory)
 

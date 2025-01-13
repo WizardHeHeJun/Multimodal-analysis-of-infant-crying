@@ -28,7 +28,7 @@ def train_and_evaluate(num_epochs, data_dir, n_classes):
     model = initialize_model(n_classes)
     optimizer, criterion = get_optimizer_and_criterion(model)
 
-    model = model.to(device)
+    # model = model.to(device)
 
     # 早期停止
     patience = 10 #容忍训练轮次
@@ -156,8 +156,26 @@ def train_and_evaluate(num_epochs, data_dir, n_classes):
     print(f"Test Accuracy: {test_accuracy:.4f}")
 
     # 保存模型
-    torch.save(model.state_dict(), 'sound_model_1.pth')
+    torch.save(model.state_dict(), 'urbansound8k_sound_model_1.pth')
 
     # 保存标签编码器
-    joblib.dump(dataset.label_encoder, 'label_encoder.pkl')
+    joblib.dump(dataset.label_encoder, 'urbansound8k_label_encoder.pkl')
 
+    # 加载模型
+    model = initialize_model(n_classes)
+    model.load_state_dict(torch.load('urbansound8k_sound_model_1.pth'))
+    model.eval()
+
+    # 获取测试样本并进行预测
+    sample, _ = test_dataset[0]  # 从测试集获取一个样本
+    sample = sample.clone().detach().unsqueeze(0).float()  # 添加batch维度
+    sample = sample.to(device)  # 确保使用GPU进行预测
+
+    # 进行预测
+    model.eval()
+    with torch.no_grad():
+        prediction = model(sample)
+        _, predicted_class = torch.max(prediction, 1)
+
+    predicted_label = dataset.label_encoder.inverse_transform([predicted_class.item()])
+    print(f"Predicted label: {predicted_label[0]}")

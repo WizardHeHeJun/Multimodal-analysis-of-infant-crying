@@ -1,6 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.cuda import device
+
+# 设置设备（GPU或CPU）
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class SoundModel(nn.Module):
     def __init__(self, n_classes):
@@ -20,7 +24,7 @@ class SoundModel(nn.Module):
         self.pool = nn.MaxPool2d(2, 2)
 
         # Dropout层
-        self.dropout = nn.Dropout(0.7)
+        self.dropout = nn.Dropout(0.5)
 
         # DNN部分（全连接层）
         self.fc1 = nn.Linear(256 * 8 * 8, 512)  # 将卷积层输出展平后输入到全连接层
@@ -50,7 +54,7 @@ class SoundModel(nn.Module):
 
 # 初始化模型并将其移到GPU
 def initialize_model(n_classes):
-    model = SoundModel(n_classes=n_classes)
+    model = SoundModel(n_classes=n_classes).to(device)
     return model
 
 # 定义损失函数和优化器
