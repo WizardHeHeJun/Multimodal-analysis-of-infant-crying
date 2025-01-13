@@ -56,9 +56,6 @@ def main():
     MODEL='sound_model.pth'
     LABEL_ENCODER='label_encoder.pkl'
 
-    # # 音频文件路径
-    # audio_path = 'E:\Multimodal-analysis-of-infant-crying\data\hungry\\6A7KZR1p.wav'
-
     # 音频目录路径
     audio_dir = 'E:\Multimodal-analysis-of-infant-crying\data\hungry'
 
@@ -66,10 +63,6 @@ def main():
     model = initialize_model(n_classes)
     model.load_state_dict(torch.load(MODEL))
     model.eval()
-
-    # # 对音频文件进行预测
-    # predicted_class = predict_from_audio(audio_path, model, device, image_size, duration)
-    # print(f"Predicted label: {predicted_class}")
 
     # 对目录音频进行预测
     predictions = predict_directory( audio_dir , model, device , image_size , duration , LABEL_ENCODER )

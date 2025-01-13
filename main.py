@@ -9,7 +9,6 @@ def main():
     # 设置数据
     num_epochs = 300 #训练轮次
     n_classes = 10 # 设定类别数
-
     data_dir = 'urbansound8k' #数据加载地址
 
     # 开始训练

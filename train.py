@@ -14,6 +14,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def train_and_evaluate(num_epochs, data_dir, n_classes):
 
+    #载入文件地址
     dataset = AudioDataset(data_dir)
 
     # 划分训练集和测试集
@@ -30,20 +31,31 @@ def train_and_evaluate(num_epochs, data_dir, n_classes):
     model = initialize_model(n_classes)
     optimizer, criterion = get_optimizer_and_criterion(model)
 
-    # model = model.to(device)
-
-    # 早期停止
-    patience = 15 #容忍训练轮次
+    # 早期停止策略设置
+    patience = 15 # 容忍训练轮次
     best_loss = float('inf')
     counter = 0
 
     train_losses, train_accuracies, val_losses, val_accuracies = [], [], [], []
 
-    #ReduceLROnPlateau学习率调度器
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5, min_lr=0.001, verbose=True)
+    lr_history = []
 
-    # # 使用CosineAnnealingLR学习率调度器
-    # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs, eta_min=0)
+    # # ReduceLROnPlateau学习率调度器
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+    #     optimizer,
+    #     mode='min',
+    #     factor=0.5,
+    #     patience=5,
+    #     min_lr=0.001,
+    #     verbose=True
+    # )
+
+    # 使用CosineAnnealingLR学习率调度器
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer,
+        T_max=num_epochs,
+        eta_min=0
+    )
 
     for epoch in range(num_epochs):
         model.train()
@@ -74,6 +86,9 @@ def train_and_evaluate(num_epochs, data_dir, n_classes):
         epoch_acc = correct_preds / total_preds
         train_losses.append(epoch_loss)
         train_accuracies.append(epoch_acc)
+
+        # 记录学习率
+        lr_history.append(optimizer.param_groups[0]['lr'])
 
         # 验证集评估
         model.eval()  # 切换到评估模式
@@ -117,11 +132,11 @@ def train_and_evaluate(num_epochs, data_dir, n_classes):
             print("Early stopping triggered!")
             break
 
-    # 绘制训练和验证过程中的损失和准确率曲线
-    plt.figure(figsize=(12, 6))
+    # 绘制训练和验证过程中的损失曲线、准确率曲线、学习率曲线
+    plt.figure(figsize=(18, 6)) # 画布大小
 
     # 损失曲线
-    plt.subplot(1, 2, 1)
+    plt.subplot(1, 3, 1) # 1行3列，位置为第1个
     plt.plot(train_losses, label="Training Loss")
     plt.plot(val_losses, label="Validation Loss")
     plt.title("Loss")
@@ -130,13 +145,20 @@ def train_and_evaluate(num_epochs, data_dir, n_classes):
     plt.legend()
 
     # 准确率曲线
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 2, 2) # 1行3列，位置为第2个
     plt.plot(train_accuracies, label="Training Accuracy")
     plt.plot(val_accuracies, label="Validation Accuracy")
     plt.title("Accuracy")
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
     plt.legend()
+
+    # 学习率曲线
+    plt.subplot(1, 2, 3) # 1行3列，位置为第3个
+    plt.plot(lr_history)
+    plt.title("Learning Rate Over Time")
+    plt.xlabel("Epoch")
+    plt.ylabel("Learning Rate")
 
     plt.show()
 

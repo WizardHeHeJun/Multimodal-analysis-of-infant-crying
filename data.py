@@ -13,23 +13,30 @@ def audio_to_spectrogram(audio_path, size, duration, augment=False):
     # 加载音频文件，指定持续时间
     y, sr = librosa.load(audio_path, sr=None, duration=duration)
 
+    # 音频增强
     if augment:
         noise = np.random.randn(len(y)) * 0.005
         y = y + noise
 
-    # 如果音频长度小于10秒，填充到10秒
+    # 音频填充
     if len(y) < sr * duration:
         pad_length = sr * duration - len(y)
         y = np.pad(y, (0, pad_length), mode='constant')
 
-    # 设置 n_fft 和 hop_length 参数
-    n_fft = 1024  # 设置为 1024，表示每个 STFT 窗口的大小为 1024
-    hop_length = n_fft // 4  # 每帧之间的步长为 n_fft 的四分之一
-    win_length = n_fft  # 窗口长度与 n_fft 相同
-    window = 'hann'  # 使用汉宁窗
+    # 设置STFT参数
+    n_fft = 1024             # 每个STFT窗口的大小为1024
+    hop_length = n_fft // 4  # 每帧之间的步长为n_fft的四分之一
+    win_length = n_fft       # 窗口长度与n_fft相同
+    window = 'hann'          # 使用汉宁窗
 
     # 计算 STFT
-    D = librosa.stft(y, n_fft=n_fft, hop_length=hop_length, win_length=win_length, window=window)
+    D = librosa.stft(
+        y,
+        n_fft=n_fft,
+        hop_length=hop_length,
+        win_length=win_length,
+        window=window
+    )
     D_mag, _ = librosa.magphase(D)
     S_db = librosa.amplitude_to_db(D_mag, ref=np.max)
 
@@ -66,7 +73,12 @@ class AudioDataset:
                 for file in os.listdir(class_folder):
                     if file.endswith('.wav'):
                         file_path = os.path.join(class_folder, file)
-                        spec = audio_to_spectrogram(file_path, size=self.image_size, duration=self.duration, augment=self.augment)
+                        spec = audio_to_spectrogram(
+                            file_path,
+                            size=self.image_size,
+                            duration=self.duration,
+                            augment=self.augment
+                        )
                         self.X.append(spec)
                         self.y.append(label)
 
@@ -85,4 +97,7 @@ class AudioDataset:
         return len(self.X)
 
     def __getitem__(self, idx):
-        return torch.tensor(self.X[idx], dtype=torch.float32).to(device), torch.tensor(self.y[idx],dtype=torch.long).to(device)
+        return (
+            torch.tensor(self.X[idx],dtype=torch.float32).to(device),
+            torch.tensor(self.y[idx],dtype=torch.long).to(device)
+        )

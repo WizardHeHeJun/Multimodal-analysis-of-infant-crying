@@ -24,14 +24,14 @@ class SoundModel(nn.Module):
         self.pool = nn.MaxPool2d(2, 2)
 
         # Dropout层
-        self.dropout = nn.Dropout(0.7)
+        self.dropout = nn.Dropout(0.5)
 
         # DNN部分（全连接层）
         self.fc1 = nn.Linear(256 * 8 * 8, 512)  # 将卷积层输出展平后输入到全连接层
         self.fc2 = nn.Linear(512, 256)  # 第二个全连接层，256个神经元
         self.fc3 = nn.Linear(256, n_classes)  # 输出层，n_classes是类别数
 
-        # 激活函数
+        # 激活函数（ReLU）
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -59,6 +59,15 @@ def initialize_model(n_classes):
 
 # 定义损失函数和优化器
 def get_optimizer_and_criterion(model):
+    # 使用CrossEntropyLoss作为损失函数
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5) # 正则化
+    # 使用Adam优化器
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=0.001,            # 学习率
+        betas=(0.9, 0.999),  # beta1, beta2
+        eps=1e-7,            # epsilon
+        weight_decay=1e-5,   # L2正则化
+        amsgrad = False      # 是否使用AMSGrad
+    )
     return optimizer, criterion
