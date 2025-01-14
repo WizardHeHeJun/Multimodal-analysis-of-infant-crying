@@ -29,7 +29,7 @@ def audio_to_spectrogram(audio_path, size, duration, augment=False):
     win_length = n_fft       # 窗口长度与n_fft相同
     window = 'hann'          # 使用汉宁窗
 
-    # 计算 STFT
+    # 计算STFT
     D = librosa.stft(
         y,
         n_fft=n_fft,
