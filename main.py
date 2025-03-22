@@ -7,7 +7,7 @@ def main():
     print(f"Using device: {device}")
 
     # 设置数据
-    num_epochs = 300 #训练轮次
+    num_epochs = 2000 #训练轮次
     n_classes = 10 # 设定类别数
     data_dir = 'urbansound8k' #数据加载地址
 

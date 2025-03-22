@@ -32,7 +32,7 @@ def train_and_evaluate(num_epochs, data_dir, n_classes):
     optimizer, criterion = get_optimizer_and_criterion(model)
 
     # 早期停止策略设置
-    patience = 15 # 容忍训练轮次
+    patience = 100 # 容忍训练轮次
     best_loss = float('inf')
     counter = 0
 

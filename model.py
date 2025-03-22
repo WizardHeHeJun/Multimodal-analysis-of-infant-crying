@@ -64,7 +64,7 @@ def get_optimizer_and_criterion(model):
     # 使用Adam优化器
     optimizer = optim.Adam(
         model.parameters(),
-        lr=0.001,            # 学习率
+        lr=0.00001,          # 学习率
         betas=(0.9, 0.999),  # beta1, beta2
         eps=1e-7,            # epsilon
         weight_decay=1e-5,   # L2正则化
