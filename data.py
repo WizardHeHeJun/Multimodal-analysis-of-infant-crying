@@ -1,103 +1,105 @@
-import os
 import librosa
 import numpy as np
+import os
+from torch.utils.data import Dataset
 import torch
 from sklearn.preprocessing import LabelEncoder
-from torch.cuda import device
 
-# 设置设备（GPU或CPU）
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# 音频文件转频谱图
-def audio_to_spectrogram(audio_path, size, duration, augment=False):
-    # 加载音频文件，指定持续时间
-    y, sr = librosa.load(audio_path, sr=None, duration=duration)
+# 音频转频谱图函数
+def audio_to_spectrogram(audio_path, duration=10, size=(128, 128), augment=False):
+    # 加载音频
+    try:
+        y, sr = librosa.load(audio_path, duration=duration)
+    except Exception as e:
+        print(f"无法加载音频文件 {audio_path}: {e}")
+        return None
 
-    # 音频增强
+    # 添加噪声增强
     if augment:
         noise = np.random.randn(len(y)) * 0.005
-        y = y + noise
+        y += noise
 
-    # 音频填充
+    # 填充音频
     if len(y) < sr * duration:
-        pad_length = sr * duration - len(y)
-        y = np.pad(y, (0, pad_length), mode='constant')
-
-    # 设置STFT参数
-    n_fft = 1024             # 每个STFT窗口的大小为1024
-    hop_length = n_fft // 4  # 每帧之间的步长为n_fft的四分之一
-    win_length = n_fft       # 窗口长度与n_fft相同
-    window = 'hann'          # 使用汉宁窗
+        y = np.pad(y, (0, sr * duration - len(y)), mode='constant')
 
     # 计算STFT
-    D = librosa.stft(
-        y,
-        n_fft=n_fft,
-        hop_length=hop_length,
-        win_length=win_length,
-        window=window
-    )
-    D_mag, _ = librosa.magphase(D)
-    S_db = librosa.amplitude_to_db(D_mag, ref=np.max)
+    D = librosa.stft(y, n_fft=2048, hop_length=512,window = 'hann') # 窗口大小2048，会获得1025个频率维度
+                                                                    # 每帧之间的步长为512
+                                                                    # 特征矩阵形状为(1025,时间帧数)
+    S_db = librosa.amplitude_to_db(np.abs(D), ref=np.max)
 
-    # 裁剪或填充频谱图
-    if S_db.shape[1] > size[1]:
-        S_db_resized = S_db[:, :size[1]] # 如果宽度大于目标尺寸，裁剪
-    else:
-        pad_width = size[1] - S_db.shape[1]
-        S_db_resized = np.pad(S_db, ((0, 0), (0, pad_width)), mode='constant') # 填充宽度
+    # 计算Mel频谱图
+    S = librosa.feature.melspectrogram(y=y, sr=sr, n_fft=2048, hop_length=512, n_mels=128) # FFT窗口的大小2048
+                                                                                           # 每帧之间的步长为512
+                                                                                           # 梅尔频率的数量为128，梅尔频谱图的频率维度是128
+                                                                                           # 特征矩阵形状为(128,时间帧数)
+    S_db_mel = librosa.power_to_db(S, ref=np.max)
 
-    # 固定高度
-    if S_db_resized.shape[0] > size[0]:
-        S_db_resized = S_db_resized[:size[0], :]
-    else:
-        pad_height = size[0] - S_db_resized.shape[0]
-        S_db_resized = np.pad(S_db_resized, ((0, pad_height), (0, 0)), mode='constant') # 填充高度
+    # 调整STFT尺寸
+    S_db = S_db[:, :size[1]] if S_db.shape[1] > size[1] else np.pad(S_db, ((0, 0), (0, size[1] - S_db.shape[1])),
+                                                                    mode='constant')
+    S_db = S_db[:size[0], :] if S_db.shape[0] > size[0] else np.pad(S_db, ((0, size[0] - S_db.shape[0]), (0, 0)),
+                                                                    mode='constant')
 
-    return S_db_resized
+    # 调整Mel尺寸
+    S_db_mel = S_db_mel[:, :size[1]] if S_db_mel.shape[1] > size[1] else np.pad(S_db_mel, (
+    (0, 0), (0, size[1] - S_db_mel.shape[1])), mode='constant')
+    S_db_mel = S_db_mel[:size[0], :] if S_db_mel.shape[0] > size[0] else np.pad(S_db_mel, (
+    (0, size[0] - S_db_mel.shape[0]), (0, 0)), mode='constant')
 
-# 数据加载和标签生成
-class AudioDataset:
-    def __init__(self, data_dir, augment=False):
-        self.X = []
-        self.y = []
-        self.image_size = (128, 128) # 输入频谱图的尺寸
-        self.duration = 10 # 设定裁剪时长
-        self.label_encoder = LabelEncoder() # 用于标签编码
-        self.augment = augment # 是否启用数据增强
+    # 堆叠STFT和Mel
+    spectrogram = np.stack((S_db, S_db_mel), axis=0) # 堆叠为一个形状为 (2, target_freq_bins, target_time_frames) 的三维矩阵
+                                                           # 第一个维度 2 表示 STFT 和 Mel 频谱图两个特征；
+                                                           # 第二个维度 target_freq_bins 是频率维度；
+                                                           # 第三个维度 target_time_frames 是时间维度。
+    return spectrogram
 
-        # 遍历数据目录，加载音频文件并转换为频谱图
-        for label in os.listdir(data_dir):
-            class_folder = os.path.join(data_dir, label)
-            if os.path.isdir(class_folder):
-                for file in os.listdir(class_folder):
-                    if file.endswith('.wav'):
-                        file_path = os.path.join(class_folder, file)
-                        spec = audio_to_spectrogram(
-                            file_path,
-                            size=self.image_size,
-                            duration=self.duration,
-                            augment=self.augment
-                        )
-                        self.X.append(spec)
-                        self.y.append(label)
+
+# 音频数据集类
+class AudioDataset(Dataset):
+    def __init__(self, spectrograms_dir, augment=False):
+        self.spectrograms_dir = spectrograms_dir
+        self.augment = augment
+        self.data = []
+        self.labels = []
+        self.label_encoder = LabelEncoder()
+
+        # 验证目录是否存在
+        if not os.path.exists(spectrograms_dir):
+            raise ValueError(f"数据目录 {spectrograms_dir} 不存在")
+
+        print(f"正在从 {spectrograms_dir} 加载数据...")
+        # 遍历目录
+        for folder in os.listdir(spectrograms_dir):
+            folder_path = os.path.join(spectrograms_dir, folder)
+            if os.path.isdir(folder_path):
+                file_count = 0
+                for file in os.listdir(folder_path):
+                    if file.lower().endswith('.wav'):  # 支持 .wav 和 .WAV
+                        file_path = os.path.join(folder_path, file)
+                        self.data.append(file_path)
+                        self.labels.append(folder)
+                        file_count += 1
+                print(f"类别 {folder}: 加载 {file_count} 个音频文件")
+
+        if not self.data:
+            raise ValueError(f"未在 {spectrograms_dir} 中找到任何 .wav 文件")
 
         # 标签编码
-        self.y = self.label_encoder.fit_transform(self.y)
-
-        # 转换为numpy数组
-        self.X = np.array(self.X)
-        self.y = np.array(self.y)
-
-        # 扩展X的维度以适配模型输入
-        self.X = np.expand_dims(self.X, axis=-1)
-        self.X = np.transpose(self.X, (0, 3, 1, 2))
+        self.labels = self.label_encoder.fit_transform(self.labels)
+        print(f"总计加载 {len(self.data)} 个样本，{len(set(self.labels))} 个类别")
 
     def __len__(self):
-        return len(self.X)
+        return len(self.data)
 
     def __getitem__(self, idx):
-        return (
-            torch.tensor(self.X[idx],dtype=torch.float32).to(device),
-            torch.tensor(self.y[idx],dtype=torch.long).to(device)
-        )
+        audio_path = self.data[idx]
+        label = self.labels[idx]
+        spectrogram = audio_to_spectrogram(audio_path, augment=self.augment)
+        if spectrogram is None:
+            raise ValueError(f"无法生成 {audio_path} 的频谱图")
+        spectrogram = torch.tensor(spectrogram, dtype=torch.float32)
+        label = torch.tensor(label, dtype=torch.long)
+        return spectrogram, label
